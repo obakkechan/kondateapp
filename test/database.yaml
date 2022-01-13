@@ -1,0 +1,62 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-deployment
+  namespace: kondate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kondate
+      pod: database
+  template:
+    metadata:
+      name: app
+      labels:
+        app: kondate
+        pod: database
+    spec:
+      containers:
+      - name: database
+        image: obakkechan/kondate_database:v1.3
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: databasesecret4
+              key: password
+        ports:
+        - name: mysql
+          containerPort: 3306
+        volumeMounts: # volumeをどこにマウントするか指定する。
+        - name: mysql-data
+          mountPath: "/var/lib/mysql"
+        # - name: photopv
+        #   mountPath: "/var/lib/photo"
+      volumes:  # コンテナに提供するボリュームを指定する。
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-data-pvc
+      # - name: photo
+      #   persistentVolumeClaim:
+      #     claimName: pvcphoto
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels: 
+    app: kondate
+  name: database
+  namespace: kondate
+spec:
+  selector:
+    app: kondate
+    pod: database
+  ports:
+  - port: 3306
+    targetPort: mysql
+  type: ClusterIP
+  #   nodePort: 30001
+  # type: NodePort

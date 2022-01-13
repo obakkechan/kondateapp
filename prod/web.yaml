@@ -1,0 +1,77 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deployment
+  namespace: kondate
+spec:
+  replicas: 3
+  # replicas: 5
+  # strategy:
+  #   rollingUpdate:
+  #     maxSurge: 50%
+  #     maxUnavailable: 0%
+  selector:
+    matchLabels:
+      app: kondate
+      pod: web
+  template:
+    metadata:
+      name: web
+      labels:
+        app: kondate
+        pod: web
+      annotations:
+        pre.hook.backup.velero.io/container: fsfreeze
+        pre.hook.backup.velero.io/command: '["/sbin/fsfreeze", "--freeze", "/var/log/nginx"]'
+        post.hook.backup.velero.io/container: fsfreeze
+        post.hook.backup.velero.io/command: '["/sbin/fsfreeze", "--unfreeze", "/var/log/nginx"]'
+    spec:
+      volumes:
+        - name: nginx-logs
+          persistentVolumeClaim:
+           claimName: nginx-logs-pvc
+      containers:
+      # - image: nginx:1.20.0-alpine
+      - image: obakkechan/kondate_web:v1.0
+        name: web
+        ports:
+        - name: http
+          containerPort: 80
+        # command:
+        # - copy
+        # - ./web_setting/default.conf
+        # - /etc/nginx/conf.d/default.conf
+        volumeMounts:
+          - mountPath: "/var/log/nginx"
+            name: nginx-logs
+            readOnly: false
+      - image: ubuntu:bionic
+        name: fsfreeze
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: "/var/log/nginx"
+            name: nginx-logs
+            readOnly: false
+        command:
+          - "/bin/bash"
+          - "-c"
+          - "sleep infinity"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: kondate
+  name: web
+  namespace: kondate
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: kondate
+    pod: web
+  type: LoadBalancer

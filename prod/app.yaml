@@ -1,0 +1,47 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deployment
+  namespace: kondate
+spec:
+  replicas: 3
+  # strategy:
+  #   rollingUpdate:
+  #     maxSurge: 50%
+  #     maxUnavailable: 0%
+  # minReadySeconds: 5
+  selector:
+    matchLabels:
+      app: kondate
+      pod: app
+  template:
+    metadata:
+      name: app
+      labels:
+        app: kondate
+        pod: app
+    spec:
+      containers:
+      - name: app
+        image: obakkechan/kondate_app:v3.6
+        ports:
+        - name: flask
+          containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels: 
+    app: kondate
+  name: app
+  namespace: kondate
+spec:
+  selector:
+    app: kondate
+    pod: app
+  ports:
+  - port: 80  
+    targetPort: flask
+  type: ClusterIP

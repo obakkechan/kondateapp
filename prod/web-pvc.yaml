@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nginx-logs-pv  # PVの名前
+  labels:
+    type: local
+spec:
+  storageClassName: manual # PVCと一致させる必要がある
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce # 一つのノードからread/writeでマウントできるモード
+  hostPath:
+    path: "/mnt/data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nginx-logs-pvc
+  namespace: kondate
+  labels:
+    app: kondate
+spec:
+  # Optional:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
